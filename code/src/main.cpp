@@ -24,154 +24,16 @@
 
 #include "Controller.h"                   // Model's header file
 #include "rtwtypes.h"
+//#include "../auto_src/Controller.h"
 
 using namespace std;
 using namespace yarp::os;
 using namespace yarp::dev;
 using namespace yarp::sig;
 
-static RT_MODEL_Controller_T Controller_M_;
-static RT_MODEL_Controller_T *const Controller_M = &Controller_M_;// Real-time model 
-static P_Controller_T Controller_P = {
-  0.05,                                // Variable: AutoCompensator_ThresHystMax
-                                       //  Referenced by: '<S1>/Compensator Handling'
 
-  0.005,                               // Variable: AutoCompensator_ThresHystMin
-                                       //  Referenced by: '<S1>/Compensator Handling'
-
-  1.0,                                 // Variable: Compensator_Ki
-                                       //  Referenced by: '<S9>/Integral Gain'
-
-  10.0,                                // Variable: Compensator_Kp
-                                       //  Referenced by: '<S9>/Proportional Gain'
-
-  0.0,                                 // Variable: Plant_IC
-                                       //  Referenced by:
-                                       //    '<S1>/Unit Delay'
-                                       //    '<S1>/Unit Delay2'
-                                       //    '<S8>/Discrete Integrator'
-
-  100.0,                               // Variable: Plant_Max
-                                       //  Referenced by: '<S8>/Discrete Integrator'
-
-  -100.0,                              // Variable: Plant_Min
-                                       //  Referenced by: '<S8>/Discrete Integrator'
-
-  1.0,                                 // Mask Parameter: EdgeDetector_model
-                                       //  Referenced by: '<S10>/Constant1'
-
-  0,                                   // Mask Parameter: EdgeDetector_ic
-                                       //  Referenced by: '<S10>/Unit Delay'
-
-  0.0,                                 // Expression: 0
-                                       //  Referenced by: '<S1>/Constant'
-
-
-  //  Expression: [1 1]
-  //  Referenced by: '<S10>/either edge'
-
-  { 1.0, 1.0 },
-
-  //  Expression: [0 1]
-  //  Referenced by: '<S10>/neg. edge'
-
-  { 0.0, 1.0 },
-
-  //  Expression: [1 0]
-  //  Referenced by: '<S10>/pos. edge'
-
-  { 1.0, 0.0 },
-  0,                                   // Computed Parameter: OUT_Y0
-                                       //  Referenced by: '<S11>/OUT'
-
-  0,                                   // Computed Parameter: OUT_Y0_d
-                                       //  Referenced by: '<S12>/OUT'
-
-
-  // Start of '<S1>/Reference Plant'
-  {
-    0.005                              // Computed Parameter: DiscreteIntegrator_gainval
-                                       //  Referenced by: '<S8>/Discrete Integrator'
-
-  }
-  // End of '<S1>/Reference Plant'
-  ,
-
-  // Start of '<S1>/Filter1'
-  {
-    //  Expression: [4.5e-4 9e-4 4.5e-4]
-    //  Referenced by: '<S7>/Discrete Filter'
-
-    { 0.00045, 0.0009, 0.00045 },
-
-    //  Expression: [1 -1.921 0.9231]
-    //  Referenced by: '<S7>/Discrete Filter'
-
-    { 1.0, -1.921, 0.9231 },
-    0.0                                // Expression: 0
-                                       //  Referenced by: '<S7>/Discrete Filter'
-
-  }
-  // End of '<S1>/Filter1'
-  ,
-
-  // Start of '<S1>/Filter'
-  {
-    //  Expression: [4.5e-4 9e-4 4.5e-4]
-    //  Referenced by: '<S6>/Discrete Filter'
-
-    { 0.00045, 0.0009, 0.00045 },
-
-    //  Expression: [1 -1.921 0.9231]
-    //  Referenced by: '<S6>/Discrete Filter'
-
-    { 1.0, -1.921, 0.9231 },
-    0.0                                // Expression: 0
-                                       //  Referenced by: '<S6>/Discrete Filter'
-
-  }
-  // End of '<S1>/Filter'
-  ,
-
-  // Start of '<S1>/Compensator'
-  {
-    0.005,                             // Computed Parameter: Integrator_gainval
-                                       //  Referenced by: '<S9>/Integrator'
-
-    0.0                                // Expression: InitialConditionForIntegrator
-                                       //  Referenced by: '<S9>/Integrator'
-
-  }
-  // End of '<S1>/Compensator'
-};                                     // Modifiable parameters
-
-static B_Controller_T Controller_B;    // Observable signals
-static DW_Controller_T Controller_DW;  // Observable states
-
-// '<Root>/reference'
-static real_T Controller_U_reference;
-
-// '<Root>/compensator_state'
-static CompensatorState Controller_U_compensator_state;
-
-// '<Root>/plant_output'
-static real_T Controller_U_plant_output;
-
-// '<Root>/controller_output'
-static real_T Controller_Y_controller_output;
-
-// '<Root>/controller_reference'
-static real_T Controller_Y_controller_reference;
-
-// '<Root>/plant_reference'
-static real_T Controller_Y_plant_reference;
-
-// '<Root>/error_statistics'
-static real_T Controller_Y_error_statistics;
-
-// '<Root>/enable_compensation'
-static boolean_T Controller_Y_enable_compensation;
-
+static ControllerModelClass::ExtU_Controller_T Controller_U;
+static ControllerModelClass::ExtY_Controller_T Controller_Y;
 
 /******************************************************/
 class CtrlModule: public RFModule
@@ -180,6 +42,8 @@ class CtrlModule: public RFModule
     IControlMode     *imod;
     IEncoders        *ienc;    
     IVelocityControl *ivel;
+    ControllerModelClass controller_;
+
     int joint;
     
     BufferedPort<Bottle> dataIn;
@@ -217,32 +81,24 @@ public:
         while (!ienc->getEncoder(joint,&enc))
             Time::delay(0.1);
         
-        Controller_P.Plant_IC=enc;
-        Controller_P.Plant_Max=max_joint;
-        Controller_P.Plant_Min=min_joint;
-        Controller_P.AutoCompensator_ThresHystMax=0.5;
-        Controller_P.AutoCompensator_ThresHystMin=0.1;
+        /*
+        ControllerModelClass::Controller_P.Plant_IC=enc;
+        ControllerModelClass::Controller_P.Plant_Max=max_joint;
+        ControllerModelClass::Controller_P.Plant_Min=min_joint;
+        ControllerModelClass::Controller_P.AutoCompensator_ThresHystMax=0.5;
+        ControllerModelClass::Controller_P.AutoCompensator_ThresHystMin=0.1; */
+    	
 
         yInfo("enc=%g in [%g, %g] deg",enc,min_joint,max_joint);
 
-        // Pack model data into RTM
-        Controller_M->ModelData.defaultParam = &Controller_P;
-        Controller_M->ModelData.blockIO = &Controller_B;
-        Controller_M->ModelData.dwork = &Controller_DW;
+        controller_.initialize();
 
-        // Initialize model
-        Controller_initialize(Controller_M, &Controller_U_reference,
-                              &Controller_U_compensator_state,
-                              &Controller_U_plant_output,
-                              &Controller_Y_controller_output,
-                              &Controller_Y_controller_reference,
-                              &Controller_Y_plant_reference,
-                              &Controller_Y_error_statistics,
-                              &Controller_Y_enable_compensation);
+        
 
-        Controller_U_reference=enc;
-        Controller_U_compensator_state=CompensatorState::Off;
-        Controller_U_plant_output=enc;        
+        Controller_U.reference=enc;
+        Controller_U.compensator_state=CompensatorState::Off;
+        Controller_U.plant_output=enc;
+        controller_.setExternalInputs(&Controller_U);
         
         dataIn.open("/"+name+"/data:i");
         dataOut.open("/"+name+"/data:o");
@@ -264,31 +120,30 @@ public:
         lock_guard<mutex> lg(mtx);
 
         if (Bottle *in=dataIn.read(false))
-            Controller_U_reference=in->get(0).asDouble();
-        ienc->getEncoder(joint,&Controller_U_plant_output);
+            Controller_U.reference=in->get(0).asDouble();
+        ienc->getEncoder(joint,&Controller_U.plant_output);
 
         // Step the model
         double t0=Time::now();
+
+        controller_.setExternalInputs(&Controller_U);
         // Step the model
-        Controller_step(Controller_M, Controller_U_reference,
-                        Controller_U_compensator_state, Controller_U_plant_output,
-                        &Controller_Y_controller_output,
-                        &Controller_Y_controller_reference,
-                        &Controller_Y_plant_reference, &Controller_Y_error_statistics,
-                        &Controller_Y_enable_compensation);
+        controller_.step();
         double t1=Time::now();
+
+        Controller_Y = controller_.getExternalOutputs();
         
-        ivel->velocityMove(joint,Controller_Y_controller_output);
+        ivel->velocityMove(joint,Controller_Y.controller_output);
 
         Vector &out=dataOut.prepare();
         out.resize(7);
-        out[0]=Controller_U_reference;
-        out[1]=Controller_Y_plant_reference;
-        out[2]=Controller_U_plant_output;
-        out[3]=Controller_Y_controller_reference;
-        out[4]=Controller_Y_controller_output;
-        out[5]=Controller_Y_error_statistics;
-        out[6]=Controller_Y_enable_compensation;
+        out[0]=Controller_U.reference;
+        out[1]=Controller_Y.plant_reference;
+        out[2]=Controller_U.plant_output;
+        out[3]=Controller_Y.controller_reference;
+        out[4]=Controller_Y.controller_output;
+        out[5]=Controller_Y.error_statistics;
+        out[6]=Controller_Y.enable_compensation;
         dataOut.writeStrict();
 
         yInfo("time elapsed = %g [us]",(t1-t0)*1e6);
@@ -314,23 +169,25 @@ public:
         if ((sw==on) || (sw==off) || (sw==automatic))
         {
             if (sw==on)
-                Controller_U_compensator_state=CompensatorState::On;
+                Controller_U.compensator_state=CompensatorState::On;
             else if (sw==off)
-                Controller_U_compensator_state=CompensatorState::Off;
+                Controller_U.compensator_state=CompensatorState::Off;
             else
-                Controller_U_compensator_state=CompensatorState::Auto;
+                Controller_U.compensator_state=CompensatorState::Auto;
             reply.addVocab(ack);
+            controller_.setExternalInputs(&Controller_U);
             return true;
         }
         else if (sw==status)
         {
             reply.addVocab(ack);
-            if (Controller_U_compensator_state==CompensatorState::On)
+            if (Controller_U.compensator_state==CompensatorState::On)
                 reply.addVocab(on);
-            else if (Controller_U_compensator_state==CompensatorState::Off)
+            else if (Controller_U.compensator_state==CompensatorState::Off)
                 reply.addVocab(off);
             else
                 reply.addVocab(automatic);
+            controller_.setExternalInputs(&Controller_U);
             return true;
         }
         else if (sw==Kp)
@@ -339,7 +196,7 @@ public:
             {
                 if (cmd.get(1).isDouble())
                 {
-                    Controller_P.Compensator_Kp=cmd.get(1).asDouble();
+                    //Controller_P.Compensator_Kp=cmd.get(1).asDouble();
                     reply.addVocab(ack);
                 }
                 else
@@ -348,7 +205,7 @@ public:
             else
             {
                 reply.addVocab(ack);
-                reply.addDouble(Controller_P.Compensator_Kp);
+                //reply.addDouble(Controller_P.Compensator_Kp);
             }
             return true;
         }
@@ -358,7 +215,7 @@ public:
             {
                 if (cmd.get(1).isDouble())
                 {
-                    Controller_P.Compensator_Ki=cmd.get(1).asDouble();
+                    //Controller_P.Compensator_Ki=cmd.get(1).asDouble();
                     reply.addVocab(ack);
                 }
                 else
@@ -367,7 +224,7 @@ public:
             else
             {
                 reply.addVocab(ack);
-                reply.addDouble(Controller_P.Compensator_Ki);
+                //reply.addDouble(Controller_P.Compensator_Ki);
             }
             return true;
         }
@@ -379,7 +236,7 @@ public:
     bool close()
     {
         // Terminate model
-        Controller_terminate(Controller_M);
+        controller_.terminate();
 
         imod->setControlMode(joint,VOCAB_CM_POSITION);
         
