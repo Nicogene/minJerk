@@ -24,7 +24,7 @@
 
 #include "Controller.h"                   // Model's header file
 #include "rtwtypes.h"
-//#include "../auto_src/Controller.h"
+
 
 using namespace std;
 using namespace yarp::os;
@@ -80,13 +80,13 @@ public:
         double enc;
         while (!ienc->getEncoder(joint,&enc))
             Time::delay(0.1);
-        
-        /*
-        ControllerModelClass::Controller_P.Plant_IC=enc;
-        ControllerModelClass::Controller_P.Plant_Max=max_joint;
-        ControllerModelClass::Controller_P.Plant_Min=min_joint;
-        ControllerModelClass::Controller_P.AutoCompensator_ThresHystMax=0.5;
-        ControllerModelClass::Controller_P.AutoCompensator_ThresHystMin=0.1; */
+
+
+        Plant_IC=enc;
+        Plant_Max=max_joint;
+        Plant_Min=min_joint;
+        AutoCompensator_ThresHystMax=0.5;
+        AutoCompensator_ThresHystMin=0.1;
     	
 
         yInfo("enc=%g in [%g, %g] deg",enc,min_joint,max_joint);
@@ -196,7 +196,7 @@ public:
             {
                 if (cmd.get(1).isDouble())
                 {
-                    //Controller_P.Compensator_Kp=cmd.get(1).asDouble();
+                    Compensator_Kp=cmd.get(1).asDouble();
                     reply.addVocab(ack);
                 }
                 else
@@ -205,7 +205,7 @@ public:
             else
             {
                 reply.addVocab(ack);
-                //reply.addDouble(Controller_P.Compensator_Kp);
+                reply.addDouble(Compensator_Kp);
             }
             return true;
         }
@@ -215,7 +215,7 @@ public:
             {
                 if (cmd.get(1).isDouble())
                 {
-                    //Controller_P.Compensator_Ki=cmd.get(1).asDouble();
+                    Compensator_Ki=cmd.get(1).asDouble();
                     reply.addVocab(ack);
                 }
                 else
@@ -224,7 +224,7 @@ public:
             else
             {
                 reply.addVocab(ack);
-                //reply.addDouble(Controller_P.Compensator_Ki);
+                reply.addDouble(Compensator_Ki);
             }
             return true;
         }
