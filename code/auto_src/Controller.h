@@ -9,7 +9,7 @@
 //
 // Model version                  : 1.238
 // Simulink Coder version         : 9.3 (R2020a) 18-Nov-2019
-// C/C++ source code generated on : Fri Jul 10 14:31:18 2020
+// C/C++ source code generated on : Mon Jul 13 16:56:33 2020
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: 32-bit Generic
@@ -30,6 +30,39 @@
 #ifndef rtmSetErrorStatus
 # define rtmSetErrorStatus(rtm, val)   ((rtm)->errorStatus = (val))
 #endif
+
+//
+//  Exported Global Parameters
+//
+//  Note: Exported global parameters are tunable parameters with an exported
+//  global storage class designation.  Code generation will declare the memory for
+//  these parameters and exports their symbols.
+//
+
+extern real_T AutoCompensator_ThresHystMax;// Variable: AutoCompensator_ThresHystMax
+                                              //  Referenced by: '<S1>/Compensator Handling'
+
+extern real_T AutoCompensator_ThresHystMin;// Variable: AutoCompensator_ThresHystMin
+                                              //  Referenced by: '<S1>/Compensator Handling'
+
+extern real_T Compensator_Ki;          // Variable: Compensator_Ki
+                                          //  Referenced by: '<S38>/Integral Gain'
+
+extern real_T Compensator_Kp;          // Variable: Compensator_Kp
+                                          //  Referenced by: '<S46>/Proportional Gain'
+
+extern real_T Plant_IC;                // Variable: Plant_IC
+                                          //  Referenced by:
+                                          //    '<S1>/Unit Delay'
+                                          //    '<S1>/Unit Delay2'
+                                          //    '<S8>/Discrete Integrator'
+
+extern real_T Plant_Max;               // Variable: Plant_Max
+                                          //  Referenced by: '<S8>/Discrete Integrator'
+
+extern real_T Plant_Min;               // Variable: Plant_Min
+                                          //  Referenced by: '<S8>/Discrete Integrator'
+
 
 // Class declaration for model Controller
 class ControllerModelClass {
@@ -153,30 +186,6 @@ class ControllerModelClass {
 
   // Parameters (default storage)
   struct P_Controller_T {
-    real_T AutoCompensator_ThresHystMax;// Variable: AutoCompensator_ThresHystMax
-                                           //  Referenced by: '<S1>/Compensator Handling'
-
-    real_T AutoCompensator_ThresHystMin;// Variable: AutoCompensator_ThresHystMin
-                                           //  Referenced by: '<S1>/Compensator Handling'
-
-    real_T Compensator_Ki;             // Variable: Compensator_Ki
-                                          //  Referenced by: '<S38>/Integral Gain'
-
-    real_T Compensator_Kp;             // Variable: Compensator_Kp
-                                          //  Referenced by: '<S46>/Proportional Gain'
-
-    real_T Plant_IC;                   // Variable: Plant_IC
-                                          //  Referenced by:
-                                          //    '<S1>/Unit Delay'
-                                          //    '<S1>/Unit Delay2'
-                                          //    '<S8>/Discrete Integrator'
-
-    real_T Plant_Max;                  // Variable: Plant_Max
-                                          //  Referenced by: '<S8>/Discrete Integrator'
-
-    real_T Plant_Min;                  // Variable: Plant_Min
-                                          //  Referenced by: '<S8>/Discrete Integrator'
-
     real_T EdgeDetector_model;         // Mask Parameter: EdgeDetector_model
                                           //  Referenced by: '<S58>/Constant1'
 
@@ -269,8 +278,7 @@ class ControllerModelClass {
   // private member function(s) for subsystem '<S1>/Compensator'
   void Compensator_Init(DW_Compensator_T *localDW, P_Compensator_T *localP);
   void Compensator(real_T rtu_e, boolean_T rtu_reset, B_Compensator_T *localB,
-                   DW_Compensator_T *localDW, P_Compensator_T *localP,
-                   P_Controller_T *Controller_P);
+                   DW_Compensator_T *localDW, P_Compensator_T *localP);
 
   // private member function(s) for subsystem '<S1>/Error Statistics'
   void ErrorStatistics(real_T rtu_in, B_ErrorStatistics_T *localB,
@@ -282,11 +290,9 @@ class ControllerModelClass {
               *localP);
 
   // private member function(s) for subsystem '<S1>/Reference Plant'
-  void ReferencePlant_Init(DW_ReferencePlant_T *localDW, P_Controller_T
-    *Controller_P);
+  void ReferencePlant_Init(DW_ReferencePlant_T *localDW);
   void ReferencePlant(real_T rtu_u, B_ReferencePlant_T *localB,
-                      DW_ReferencePlant_T *localDW, P_ReferencePlant_T *localP,
-                      P_Controller_T *Controller_P);
+                      DW_ReferencePlant_T *localDW, P_ReferencePlant_T *localP);
 };
 
 //-

@@ -9,7 +9,7 @@
 //
 // Model version                  : 1.238
 // Simulink Coder version         : 9.3 (R2020a) 18-Nov-2019
-// C/C++ source code generated on : Fri Jul 10 14:31:18 2020
+// C/C++ source code generated on : Mon Jul 13 16:56:33 2020
 //
 // Target selection: ert.tlc
 // Embedded hardware selection: 32-bit Generic
@@ -24,6 +24,32 @@ const uint8_T Controller_IN_AutomaticOff = 1U;
 const uint8_T Controller_IN_AutomaticOn = 2U;
 const uint8_T Controller_IN_Select = 3U;
 
+// Exported block parameters
+real_T AutoCompensator_ThresHystMax = 0.05;// Variable: AutoCompensator_ThresHystMax
+                                              //  Referenced by: '<S1>/Compensator Handling'
+
+real_T AutoCompensator_ThresHystMin = 0.005;// Variable: AutoCompensator_ThresHystMin
+                                               //  Referenced by: '<S1>/Compensator Handling'
+
+real_T Compensator_Ki = 1.0;           // Variable: Compensator_Ki
+                                          //  Referenced by: '<S38>/Integral Gain'
+
+real_T Compensator_Kp = 10.0;          // Variable: Compensator_Kp
+                                          //  Referenced by: '<S46>/Proportional Gain'
+
+real_T Plant_IC = 0.0;                 // Variable: Plant_IC
+                                          //  Referenced by:
+                                          //    '<S1>/Unit Delay'
+                                          //    '<S1>/Unit Delay2'
+                                          //    '<S8>/Discrete Integrator'
+
+real_T Plant_Max = 100.0;              // Variable: Plant_Max
+                                          //  Referenced by: '<S8>/Discrete Integrator'
+
+real_T Plant_Min = -100.0;             // Variable: Plant_Min
+                                          //  Referenced by: '<S8>/Discrete Integrator'
+
+
 // System initialize for atomic system: '<S1>/Compensator'
 void ControllerModelClass::Compensator_Init(DW_Compensator_T *localDW,
   P_Compensator_T *localP)
@@ -35,8 +61,7 @@ void ControllerModelClass::Compensator_Init(DW_Compensator_T *localDW,
 
 // Output and update for atomic system: '<S1>/Compensator'
 void ControllerModelClass::Compensator(real_T rtu_e, boolean_T rtu_reset,
-  B_Compensator_T *localB, DW_Compensator_T *localDW, P_Compensator_T *localP,
-  P_Controller_T *Controller_P)
+  B_Compensator_T *localB, DW_Compensator_T *localDW, P_Compensator_T *localP)
 {
   real_T Integrator;
   real_T Integrator_tmp;
@@ -48,8 +73,7 @@ void ControllerModelClass::Compensator(real_T rtu_e, boolean_T rtu_reset,
     localDW->Integrator_DSTATE = localP->DiscretePIDController_InitialCo;
   }
 
-  Integrator_tmp = localP->Integrator_gainval * (Controller_P->Compensator_Ki *
-    rtu_e);
+  Integrator_tmp = localP->Integrator_gainval * (Compensator_Ki * rtu_e);
   Integrator = Integrator_tmp + localDW->Integrator_DSTATE;
 
   // End of DiscreteIntegrator: '<S41>/Integrator'
@@ -57,7 +81,7 @@ void ControllerModelClass::Compensator(real_T rtu_e, boolean_T rtu_reset,
   // Sum: '<S50>/Sum' incorporates:
   //   Gain: '<S46>/Proportional Gain'
 
-  localB->Sum = Controller_P->Compensator_Kp * rtu_e + Integrator;
+  localB->Sum = Compensator_Kp * rtu_e + Integrator;
 
   // Update for DiscreteIntegrator: '<S41>/Integrator'
   localDW->Integrator_DSTATE = Integrator_tmp + Integrator;
@@ -152,17 +176,15 @@ void ControllerModelClass::Filter(real_T rtu_e, B_Filter_T *localB, DW_Filter_T 
 }
 
 // System initialize for atomic system: '<S1>/Reference Plant'
-void ControllerModelClass::ReferencePlant_Init(DW_ReferencePlant_T *localDW,
-  P_Controller_T *Controller_P)
+void ControllerModelClass::ReferencePlant_Init(DW_ReferencePlant_T *localDW)
 {
   // InitializeConditions for DiscreteIntegrator: '<S8>/Discrete Integrator'
-  localDW->DiscreteIntegrator_DSTATE = Controller_P->Plant_IC;
+  localDW->DiscreteIntegrator_DSTATE = Plant_IC;
 }
 
 // Output and update for atomic system: '<S1>/Reference Plant'
 void ControllerModelClass::ReferencePlant(real_T rtu_u, B_ReferencePlant_T
-  *localB, DW_ReferencePlant_T *localDW, P_ReferencePlant_T *localP,
-  P_Controller_T *Controller_P)
+  *localB, DW_ReferencePlant_T *localDW, P_ReferencePlant_T *localP)
 {
   real_T DiscreteIntegrator_tmp;
 
@@ -170,11 +192,11 @@ void ControllerModelClass::ReferencePlant(real_T rtu_u, B_ReferencePlant_T
   DiscreteIntegrator_tmp = localP->DiscreteIntegrator_gainval * rtu_u;
   localB->DiscreteIntegrator = DiscreteIntegrator_tmp +
     localDW->DiscreteIntegrator_DSTATE;
-  if (localB->DiscreteIntegrator >= Controller_P->Plant_Max) {
-    localB->DiscreteIntegrator = Controller_P->Plant_Max;
+  if (localB->DiscreteIntegrator >= Plant_Max) {
+    localB->DiscreteIntegrator = Plant_Max;
   } else {
-    if (localB->DiscreteIntegrator <= Controller_P->Plant_Min) {
-      localB->DiscreteIntegrator = Controller_P->Plant_Min;
+    if (localB->DiscreteIntegrator <= Plant_Min) {
+      localB->DiscreteIntegrator = Plant_Min;
     }
   }
 
@@ -183,11 +205,11 @@ void ControllerModelClass::ReferencePlant(real_T rtu_u, B_ReferencePlant_T
   // Update for DiscreteIntegrator: '<S8>/Discrete Integrator'
   localDW->DiscreteIntegrator_DSTATE = DiscreteIntegrator_tmp +
     localB->DiscreteIntegrator;
-  if (localDW->DiscreteIntegrator_DSTATE >= Controller_P->Plant_Max) {
-    localDW->DiscreteIntegrator_DSTATE = Controller_P->Plant_Max;
+  if (localDW->DiscreteIntegrator_DSTATE >= Plant_Max) {
+    localDW->DiscreteIntegrator_DSTATE = Plant_Max;
   } else {
-    if (localDW->DiscreteIntegrator_DSTATE <= Controller_P->Plant_Min) {
-      localDW->DiscreteIntegrator_DSTATE = Controller_P->Plant_Min;
+    if (localDW->DiscreteIntegrator_DSTATE <= Plant_Min) {
+      localDW->DiscreteIntegrator_DSTATE = Plant_Min;
     }
   }
 }
@@ -236,8 +258,8 @@ void ControllerModelClass::step()
         // Transition: '<S3>:22'
         Controller_DW.is_c3_Controller = Controller_IN_Select;
       } else {
-        if (Controller_B.ErrorStatistics_p.Mean >
-            Controller_P.AutoCompensator_ThresHystMax) {
+        if (Controller_B.ErrorStatistics_p.Mean > AutoCompensator_ThresHystMax)
+        {
           // Transition: '<S3>:24'
           Controller_DW.is_c3_Controller = Controller_IN_AutomaticOn;
 
@@ -254,8 +276,8 @@ void ControllerModelClass::step()
         // Transition: '<S3>:20'
         Controller_DW.is_c3_Controller = Controller_IN_Select;
       } else {
-        if (Controller_B.ErrorStatistics_p.Mean <
-            Controller_P.AutoCompensator_ThresHystMin) {
+        if (Controller_B.ErrorStatistics_p.Mean < AutoCompensator_ThresHystMin)
+        {
           // Transition: '<S3>:23'
           Controller_DW.is_c3_Controller = Controller_IN_AutomaticOff;
 
@@ -281,8 +303,8 @@ void ControllerModelClass::step()
         Controller_DW.is_c3_Controller = Controller_IN_Select;
       } else {
         // Transition: '<S3>:17'
-        if (Controller_B.ErrorStatistics_p.Mean >
-            Controller_P.AutoCompensator_ThresHystMax) {
+        if (Controller_B.ErrorStatistics_p.Mean > AutoCompensator_ThresHystMax)
+        {
           // Transition: '<S3>:26'
           Controller_DW.is_c3_Controller = Controller_IN_AutomaticOn;
 
@@ -362,8 +384,7 @@ void ControllerModelClass::step()
   // Logic: '<S58>/Logical Operator1'
   Compensator(rtb_e_comp, Controller_B.RelationalOperator1 ||
               Controller_B.RelationalOperator1_n, &Controller_B.Compensator_k,
-              &Controller_DW.Compensator_k, &Controller_P.Compensator_k,
-              &Controller_P);
+              &Controller_DW.Compensator_k, &Controller_P.Compensator_k);
 
   // End of Outputs for SubSystem: '<S1>/Compensator'
 
@@ -389,7 +410,7 @@ void ControllerModelClass::step()
   // Outputs for Atomic SubSystem: '<S1>/Reference Plant'
   ReferencePlant(Controller_B.Filter_i.DiscreteFilter,
                  &Controller_B.ReferencePlant_j, &Controller_DW.ReferencePlant_j,
-                 &Controller_P.ReferencePlant_j, &Controller_P);
+                 &Controller_P.ReferencePlant_j);
 
   // End of Outputs for SubSystem: '<S1>/Reference Plant'
 
@@ -443,10 +464,10 @@ void ControllerModelClass::initialize()
 {
   // SystemInitialize for Atomic SubSystem: '<Root>/Controller'
   // InitializeConditions for UnitDelay: '<S1>/Unit Delay'
-  Controller_DW.UnitDelay_DSTATE = Controller_P.Plant_IC;
+  Controller_DW.UnitDelay_DSTATE = Plant_IC;
 
   // InitializeConditions for UnitDelay: '<S1>/Unit Delay2'
-  Controller_DW.UnitDelay2_DSTATE = Controller_P.Plant_IC;
+  Controller_DW.UnitDelay2_DSTATE = Plant_IC;
 
   // InitializeConditions for UnitDelay: '<S58>/Unit Delay'
   Controller_DW.UnitDelay_DSTATE_e = Controller_P.EdgeDetector_ic;
@@ -479,7 +500,7 @@ void ControllerModelClass::initialize()
   // End of SystemInitialize for SubSystem: '<S1>/Filter1'
 
   // SystemInitialize for Atomic SubSystem: '<S1>/Reference Plant'
-  ReferencePlant_Init(&Controller_DW.ReferencePlant_j, &Controller_P);
+  ReferencePlant_Init(&Controller_DW.ReferencePlant_j);
 
   // End of SystemInitialize for SubSystem: '<S1>/Reference Plant'
   // End of SystemInitialize for SubSystem: '<Root>/Controller'
